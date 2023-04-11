@@ -1,7 +1,7 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from views import get_all_metals, get_single_metal
-from views import get_all_orders, get_single_order, create_order, delete_order, update_order
+from views import get_all_orders, get_single_order, create_order
 from views import get_all_sizes, get_single_size
 from views import get_all_styles, get_single_style
 
@@ -12,7 +12,7 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Handles GET requests to the server """
-        self._set_headers(200)
+
         response = {}
 
         (resource, id) = self.parse_url(self.path)
@@ -20,25 +20,49 @@ class HandleRequests(BaseHTTPRequestHandler):
         if resource == "metals":
             if id is not None:
                 response = get_single_metal(id)
+                if response is not None:
+                    self._set_headers(200)
+                else:
+                    self._set_headers(404)
+                    response = { "message": "That metal is not currently in stock for jewelry."}
             else:
+                self._set_headers(200)
                 response = get_all_metals()
 
         elif resource == "sizes":
             if id is not None:
                 response = get_single_size(id)
+                if response is not None:
+                    self._set_headers(200)
+                else:
+                    self._set_headers(404)
+                    response = {"message": "That size is not currently in stock for jewelry."}
             else:
+                self._set_headers(200)
                 response = get_all_sizes()
 
         elif resource == "styles":
             if id is not None:
                 response = get_single_style(id)
+                if response is not None:
+                    self._set_headers(200)
+                else:
+                    self._set_headers(404)
+                    response = {"message": "That style is not currently in stock for jewelry."}
             else:
+                self._set_headers(200)
                 response = get_all_styles()
 
         elif resource == "orders":
             if id is not None:
                 response = get_single_order(id)
+                if response is not None:
+                    self._set_headers(200)
+                else:
+                    self._set_headers(404)
+                    response = {"message": "That order was never placed, or was cancelled."}
             else:
+                self._set_headers(200)
                 response = get_all_orders()
 
         else:
@@ -48,7 +72,7 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def do_POST(self):
         """Handles POST requests to the server """
-        self._set_headers(201)
+
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
@@ -58,12 +82,19 @@ class HandleRequests(BaseHTTPRequestHandler):
         new_order = None
 
         if resource == "orders":
-            new_order = create_order(post_body)
+            if "timestamp" in post_body and "metalId" in post_body and "sizeId" in post_body and "styleId" in post_body:
+                self._set_headers(201)
+                new_order = create_order(post_body)
+            else:
+                self._set_headers(400)
+                new_order = {
+                    "message": f'{"timestamp is required" if "timestamp" not in post_body else ""}{"metal Id is required" if "metalId" not in post_body else ""}{"size Id is required" if "sizeId" not in post_body else ""}{"style Id is required" if "styleId" not in post_body else ""}'
+                }
             self.wfile.write(json.dumps(new_order).encode())
 
     def do_PUT(self):
         """Handles PUT requests to the server """
-        self._set_headers(204)
+        update_order_message = None
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
@@ -71,9 +102,12 @@ class HandleRequests(BaseHTTPRequestHandler):
         (resource, id) = self.parse_url(self.path)
 
         if resource == "orders":
-            update_order(id, post_body)
+            self._set_headers(405)
+            update_order_message = {
+                "message": f'{"Order has already been processed and is in production. Unable to update order at this time. Please contact customer support."}'
+            }
+            self.wfile.write(json.dumps(update_order_message).encode())
 
-        self.wfile.write("".encode())
 
     def _set_headers(self, status):
         """Sets the status code, Content-Type and Access-Control-Allow-Origin
@@ -98,14 +132,16 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         """Handles DELETE requests to the server"""
-        self._set_headers(204)
+        delete_order_message = None
 
         (resource, id) = self.parse_url(self.path)
 
         if resource == "orders":
-            delete_order(id)
-
-        self.wfile.write("".encode())
+            self._set_headers(405)
+            delete_order_message = {
+                "message": f'{"Order has already been processed and is in production. Unable to delete order at this time. Please contact customer support."}'
+            }
+            self.wfile.write(json.dumps(delete_order_message).encode())
 
     def parse_url(self, path):
         """Parses Url"""
