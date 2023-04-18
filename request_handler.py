@@ -82,13 +82,13 @@ class HandleRequests(BaseHTTPRequestHandler):
         new_order = None
 
         if resource == "orders":
-            if "timestamp" in post_body and "metalId" in post_body and "sizeId" in post_body and "styleId" in post_body:
+            if "timestamp" in post_body and "metal_id" in post_body and "size_id" in post_body and "style_id" in post_body:
                 self._set_headers(201)
                 new_order = create_order(post_body)
             else:
                 self._set_headers(400)
                 new_order = {
-                    "message": f'{"timestamp is required" if "timestamp" not in post_body else ""}{"metal Id is required" if "metalId" not in post_body else ""}{"size Id is required" if "sizeId" not in post_body else ""}{"style Id is required" if "styleId" not in post_body else ""}'
+                    "message": f'{"timestamp is required" if "timestamp" not in post_body else ""}{"metal Id is required" if "metal_id" not in post_body else ""}{"size Id is required" if "size_id" not in post_body else ""}{"style Id is required" if "style_id" not in post_body else ""}'
                 }
             self.wfile.write(json.dumps(new_order).encode())
 
