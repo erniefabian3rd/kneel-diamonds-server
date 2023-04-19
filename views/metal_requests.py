@@ -1,3 +1,6 @@
+import sqlite3
+import json
+
 METALS = [
     {
         "id": 1,
@@ -39,3 +42,23 @@ def get_single_metal(id):
             requested_metal = metal
 
     return requested_metal
+
+def update_metal(id, new_metal):
+    """Updates metal with client information"""
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        UPDATE Metal
+            SET
+                metal = ?,
+                price = ?
+        WHERE id = ?
+        """, (new_metal['metal'], new_metal['price'], id, ))
+
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        return False
+    else:
+        return True
