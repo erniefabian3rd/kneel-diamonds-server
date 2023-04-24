@@ -1,5 +1,6 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse
 from views import get_all_metals, get_single_metal, update_metal
 from views import get_all_orders, get_single_order, create_order, delete_order, update_order
 from views import get_all_sizes, get_single_size
@@ -15,25 +16,25 @@ class HandleRequests(BaseHTTPRequestHandler):
         self._set_headers(200)
         response = {}
 
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
         if resource == "metals":
             if id is not None:
                 response = get_single_metal(id)
             else:
-                response = get_all_metals()
+                response = get_all_metals(query_params)
 
         elif resource == "sizes":
             if id is not None:
                 response = get_single_size(id)
             else:
-                response = get_all_sizes()
+                response = get_all_sizes(query_params)
 
         elif resource == "styles":
             if id is not None:
                 response = get_single_style(id)
             else:
-                response = get_all_styles()
+                response = get_all_styles(query_params)
 
         elif resource == "orders":
             if id is not None:
@@ -53,7 +54,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
 
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
         new_order = None
 
@@ -68,7 +69,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
 
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
         success = False
 
@@ -109,7 +110,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         """Handles DELETE requests to the server"""
         self._set_headers(204)
 
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
         if resource == "orders":
             delete_order(id)
@@ -117,19 +118,25 @@ class HandleRequests(BaseHTTPRequestHandler):
         self.wfile.write("".encode())
 
     def parse_url(self, path):
-        """Parses Url"""
-        path_params = path.split("/")
-        resource = path_params[1]
+        """Parses the URL"""
+        url_components = urlparse(path)
+        path_params = url_components.path.strip("/").split("/")
+        query_params = []
+
+        if url_components.query != '':
+            query_params = url_components.query.split("&")
+
+        resource = path_params[0]
         id = None
 
         try:
-            id = int(path_params[2])
+            id = int(path_params[1])
         except IndexError:
             pass
         except ValueError:
             pass
 
-        return (resource, id)
+        return (resource, id, query_params)
 
 # point of this application.
 def main():
